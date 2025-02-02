@@ -42,9 +42,21 @@ def deploy(environment) {
         System.exit(0)
     }
 
-    // ✅ Usa interpolación Groovy para las variables dentro de `bat`
-    bat "echo Container Name: ${containerName}"
-    bat "for /f %%i in ('docker ps -f \"name=${containerName}\" -q') do docker stop %%i"
-    bat "for /f %%i in ('docker ps -a -f \"name=${containerName}\" -q') do docker rm %%i"
-    bat "docker run -d -p ${port}:5000 --name ${containerName} hands-on-jenkins/myapp:${BUILD_NUMBER}"
+    bat """
+	@echo off
+	echo Checking if container %containerName% exists...
+
+	for /f %%i in ('docker ps -q -f "name=%containerName%" 2^>nul') do (
+		echo Stopping container...
+		docker stop %%i
+	)
+
+	for /f %%i in ('docker ps -aq -f "name=%containerName%" 2^>nul') do (
+		echo Removing container...
+		docker rm %%i
+	)
+
+	echo Starting new container...
+	docker run -d -p ${port}:5000 --name ${containerName} hands-on-jenkins/myapp:${env.BUILD_NUMBER}
+	"""
 }
